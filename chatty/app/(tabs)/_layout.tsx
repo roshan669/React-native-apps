@@ -5,14 +5,16 @@ import React from "react";
 import Animated from "react-native-reanimated";
 
 const iconNames: { [key: string]: keyof typeof Ionicons.glyphMap } = {
-  index: "chatbubble-ellipses-outline",
-  about: "person-circle-outline",
+  chatsn: "chatbubble-ellipses-outline",
+  aboutn: "person-circle-outline",
+  chatsf: "chatbubble-ellipses-sharp",
+  aboutf: "person-circle-sharp",
 };
 
 export default function TabLayout() {
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Tabs
         screenOptions={({ route }) => ({
           tabBarActiveTintColor: "red",
@@ -32,8 +34,14 @@ export default function TabLayout() {
             fontWeight: "bold",
           },
           tabBarIcon: ({ color, focused }) => {
-            const routeName = route.name as keyof typeof iconNames;
-            const iconName = iconNames[routeName];
+            let iconName;
+            if (focused) {
+              const routeName = (route.name + "f") as keyof typeof iconNames;
+              iconName = iconNames[routeName];
+            } else {
+              const routeName = (route.name + "n") as keyof typeof iconNames;
+              iconName = iconNames[routeName];
+            }
 
             return (
               <Animated.View
@@ -46,7 +54,7 @@ export default function TabLayout() {
         })}
       >
         <Tabs.Screen
-          name="index"
+          name="chats"
           options={{
             title: "Chats",
             headerShown: false,
