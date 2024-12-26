@@ -20,6 +20,7 @@ export default function RootLayout() {
           name="screens/signup"
           options={{ headerShown: false, animation: "simple_push" }}
         />
+        <Stack.Screen name="screens/login" options={{ headerShown: false }} />
       </Stack>
       <ToastManager />
     </>

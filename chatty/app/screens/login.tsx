@@ -7,20 +7,24 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Image,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import { Link, useRouter } from "expo-router";
 import { Toast } from "toastify-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActivityIndicator } from "react-native";
 
 export default function Login() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (password: string, username: string) => {
     try {
+      setLoading(true);
       const response = await fetch(
         "https://server-27op.onrender.com/api/auth/login",
         {
@@ -29,6 +33,7 @@ export default function Login() {
           body: JSON.stringify({ password, username }),
         }
       );
+      setLoading(false);
       console.log(response);
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
@@ -36,7 +41,7 @@ export default function Login() {
       if (data.status == true) {
         Toast.success("You are in 😊!", "top");
         AsyncStorage.setItem("login", JSON.stringify(data.user));
-        if (data.user) router.navigate("./(tabs)/chats");
+        if (data.user) router.replace("../(tabs)/chats");
       } else {
         Toast.error(data.msg, "top");
       }
@@ -46,6 +51,9 @@ export default function Login() {
   };
 
   const onLoginPress = () => {
+    if (loading) {
+      return <ActivityIndicator size={"large"} />;
+    }
     if (username && password) {
       handleLogin(password, username);
     } else {
@@ -154,5 +162,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 1,
     shadowRadius: 4,
+  },
+  loader: {
+    width: 100,
+    height: 100,
+    alignSelf: "center",
   },
 });

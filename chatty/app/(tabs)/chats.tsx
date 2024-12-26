@@ -17,19 +17,18 @@ export default function Chats() {
     async function checkAuth() {
       const auth = await AsyncStorage.getItem("login");
       if (!auth) {
-        router.replace("./login"); // Corrected the navigation path
+        router.replace("/"); // Corrected the navigation path
       } else {
         setCurrentUser(JSON.parse(auth));
         setLoading(false); // Set loading to false once authentication is checked
       }
     }
     checkAuth();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     async function post() {
       if (currentUser) {
-        console.log(currentUser);
         if (currentUser.isAvatarImageSet) {
           const response = await fetch(
             `https://server-27op.onrender.com/api/auth/allusers/${currentUser._id}`,
@@ -41,7 +40,6 @@ export default function Chats() {
           const data = await response.json();
 
           setContacts(data);
-          console.log(data);
         } else {
           router.replace("../screens/setAvatar");
         }

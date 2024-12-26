@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Image, Text } from "react-native";
+import { ActivityIndicator, Image, Text } from "react-native";
 import Login from "./screens/login";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, Stack } from "expo-router";
@@ -31,7 +31,7 @@ export default function Index() {
   }, [isAuthenticated, router]);
 
   if (isLoading) {
-    return <Image source={{ uri: "../assets/images/loader (1).gif" }} />; // Display a loading screen or spinner if needed
+    return <ActivityIndicator size="large" color="#0000ff" />; // Display a loading screen or spinner if needed
   }
 
   return isAuthenticated ? null : <Login />;

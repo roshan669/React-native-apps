@@ -36,7 +36,7 @@ export default function Signup() {
       const data = text ? JSON.parse(text) : {};
       if (data.status == true) {
         Toast.success(data.msg, "top");
-        router.push("/(tabs)/chats");
+        router.replace("/");
       } else {
         Toast.error(data.msg, "top");
       }
@@ -47,6 +47,18 @@ export default function Signup() {
 
   const onSignupPress = () => {
     if (email && password && username) {
+      if (password.length < 6) {
+        Toast.error("Password must be at least 6 characters", "top");
+        return;
+      }
+      if (username.length < 3) {
+        Toast.error("Username must be at least 3 characters", "top");
+        return;
+      }
+      if (!email.includes("@")) {
+        Toast.error("Please enter a valid email", "top");
+        return;
+      }
       handleSignup(email, password, username);
     } else {
       Toast.error("Please enter all fields", "top");
