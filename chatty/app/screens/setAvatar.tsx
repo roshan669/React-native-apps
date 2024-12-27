@@ -103,7 +103,6 @@ export default function SetAvatar() {
                   source={{ uri: avatar }}
                   style={styles.avatarImage}
                   resizeMode="cover"
-                  onError={(error) => console.error("Image load error:", error)}
                 />
               </TouchableOpacity>
             ))}

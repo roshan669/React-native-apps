@@ -17,21 +17,20 @@ export default function TabLayout() {
       <StatusBar style="light" />
       <Tabs
         screenOptions={({ route }) => ({
-          tabBarActiveTintColor: "red",
+          tabBarActiveTintColor: "#FF4500",
           tabBarInactiveTintColor: "gray",
+          tabBarActiveBackgroundColor: "FF4500",
           tabBarStyle: {
-            backgroundColor: "transparent",
-            borderTopWidth: 0,
-            height: 60,
-            paddingVertical: 10,
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
+            backgroundColor: "#25292e",
+            borderTopColor: "#333333",
+            borderTopWidth: 0.167,
+            height: 70,
+            position: "fixed",
           },
           tabBarLabelStyle: {
             fontSize: 12,
             fontWeight: "bold",
+            marginTop: 3,
           },
           tabBarIcon: ({ color, focused }) => {
             let iconName;

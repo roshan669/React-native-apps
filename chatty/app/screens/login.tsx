@@ -34,10 +34,10 @@ export default function Login() {
         }
       );
       setLoading(false);
-      console.log(response);
+
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
-      console.log(data);
+
       if (data.status == true) {
         Toast.success("You are in 😊!", "top");
         AsyncStorage.setItem("login", JSON.stringify(data.user));
@@ -90,6 +90,7 @@ export default function Login() {
           onPress={onLoginPress}
           style={[styles.button, styles.shadow]}
         >
+          <Ionicons name="log-in-outline" size={20} color={"#FFF"} />
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
         <TouchableOpacity>
@@ -105,7 +106,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#333333",
+    backgroundColor: "#25292e",
   },
   container: {
     flex: 1,
@@ -136,11 +137,14 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     width: "80%",
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 5,
   },
   link: {
     color: "#007bff",
@@ -158,10 +162,6 @@ const styles = StyleSheet.create({
   icon: {
     elevation: 10,
     marginBottom: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
   },
   loader: {
     width: 100,

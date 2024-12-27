@@ -22,7 +22,11 @@ export default function RootLayout() {
         />
         <Stack.Screen name="screens/login" options={{ headerShown: false }} />
       </Stack>
-      <ToastManager />
+      <ToastManager
+        showProgressBar={false}
+        duration={1750}
+        showCloseIcon={false}
+      />
     </>
   );
 }
