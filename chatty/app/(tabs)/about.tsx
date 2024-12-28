@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     color: "white",
     textTransform: "uppercase",
     marginLeft: 10,
-
     fontWeight: "bold",
     fontSize: 23,
   },
@@ -88,6 +87,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 20,
     justifyContent: "center",
+    alignItems: "center", // Center children horizontally
     flexDirection: "column",
   },
   name: {
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFF",
     backgroundColor: "transparent",
     borderWidth: 2,
-    marginLeft: 68,
+    alignSelf: "center", // Center the avatar horizontally
     marginTop: 30,
   },
   profileContainer: {
@@ -136,7 +136,6 @@ const styles = StyleSheet.create({
   credit: {
     textAlign: "center",
     marginTop: 80,
-
     color: "#FF4500",
     fontWeight: "bold",
     fontSize: 17,

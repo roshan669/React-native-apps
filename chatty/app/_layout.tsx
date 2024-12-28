@@ -11,7 +11,10 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false, animation: "flip" }}
+        />
         <Stack.Screen
           name="screens/setAvatar"
           options={{ headerShown: false }}
@@ -21,6 +24,7 @@ export default function RootLayout() {
           options={{ headerShown: false, animation: "simple_push" }}
         />
         <Stack.Screen name="screens/login" options={{ headerShown: false }} />
+        <Stack.Screen name="screens/Chat" options={{ headerShown: false }} />
       </Stack>
       <ToastManager
         showProgressBar={false}

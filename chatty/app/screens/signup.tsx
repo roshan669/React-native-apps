@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
+  ToastAndroid,
 } from "react-native";
 import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -48,11 +49,11 @@ export default function Signup() {
   const onSignupPress = () => {
     if (email && password && username) {
       if (password.length < 6) {
-        Toast.error("Password must be at least 6 characters", "top");
+        Toast.error("Invalid Password", "top");
         return;
       }
-      if (username.length < 3) {
-        Toast.error("Username must be at least 3 characters", "top");
+      if (username.length < 3 || username.includes(" ")) {
+        Toast.error("Invalid Username", "top");
         return;
       }
       if (!email.includes("@")) {
@@ -108,7 +109,7 @@ export default function Signup() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#333333",
+    backgroundColor: "#25292e",
   },
   container: {
     flex: 1,

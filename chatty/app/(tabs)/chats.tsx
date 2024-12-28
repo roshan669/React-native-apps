@@ -11,7 +11,6 @@ import {
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { io } from "socket.io-client";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 interface User {
@@ -83,8 +82,11 @@ export default function Chats() {
     run();
   }, []);
 
-  const changeCurrentChat = (index: number) => {
-    setCurrentSelected(index);
+  const changeCurrentChat = (key: Contact) => {
+    router.push({
+      pathname: "../screens/Chat",
+      params: { SelectedUser: JSON.stringify(key) },
+    });
   };
 
   if (loading) {
@@ -115,7 +117,7 @@ export default function Chats() {
               styles.contact,
               currentSelected === index && styles.selected,
             ]}
-            onPress={() => changeCurrentChat(index)}
+            onPress={() => changeCurrentChat(contact)}
           >
             <Image
               source={{

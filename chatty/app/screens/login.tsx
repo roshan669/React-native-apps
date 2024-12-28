@@ -43,7 +43,7 @@ export default function Login() {
         AsyncStorage.setItem("login", JSON.stringify(data.user));
         if (data.user) router.replace("../(tabs)/chats");
       } else {
-        Toast.error(data.msg, "top");
+        Toast.error("Wrong credentials", "top");
       }
     } catch (error) {
       Toast.error("Something went wrong", "top");
@@ -52,7 +52,7 @@ export default function Login() {
 
   const onLoginPress = () => {
     if (loading) {
-      return <ActivityIndicator size={"large"} />;
+      return <ActivityIndicator style={styles.loader} size={"large"} />;
     }
     if (username && password) {
       handleLogin(password, username);
@@ -164,8 +164,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   loader: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
+    flex: 1,
+    justifyContent: "center",
   },
 });
