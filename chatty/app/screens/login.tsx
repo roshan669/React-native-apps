@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-  Image,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";

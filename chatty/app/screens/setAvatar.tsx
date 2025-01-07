@@ -30,15 +30,16 @@ export default function SetAvatar() {
       }
     }
     checkAuth();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     async function fetchAvatars() {
       try {
+        setIsLoading(true);
         const requests = [];
         for (let i = 0; i < 4; i++) {
           const randomId = Math.round(Math.random() * 10000);
-          const url = `${api}/${randomId}.png`; // Directly use the RoboHash URL
+          const url = await `${api}/${randomId}.png`;
           requests.push(url);
         }
         setAvatars(requests);

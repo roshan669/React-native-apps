@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { io, Socket } from "socket.io-client";
 import {
   View,
   Text,
@@ -14,10 +15,14 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { io } from "socket.io-client";
 
 interface Message {
   id: string;
+  fromSelf: boolean;
+  message: string;
+}
+
+interface SocketMessage {
   fromSelf: boolean;
   message: string;
 }
@@ -26,14 +31,59 @@ export default function Chat() {
   const { SelectedUser } = useGlobalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [arrivalMessage, setArrivalMessage] = useState<Message | null>(null);
-  // Parse SelectedUser from JSON string to object
+  const [newMessage, setNewMessage] = useState<string>("");
   const selectedUser = SelectedUser ? JSON.parse(SelectedUser as string) : null;
   const router = useRouter();
-  const socket = io("https://server-27op.onrender.com");
+  const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList<Message>>(null);
 
+  if (!socketRef.current) {
+    socketRef.current = io("https://server-27op.onrender.com", {
+      transports: ["websocket"],
+    });
+  }
+
+  const socket = socketRef.current;
+
   useEffect(() => {
-    async function run() {
+    const initializeSocket = async () => {
+      const currentUserString = await AsyncStorage.getItem("login");
+      if (currentUserString) {
+        const currentUser = JSON.parse(currentUserString);
+        socket.emit("add-user", currentUser._id);
+
+        socket.on("disconnect", () => {});
+
+        socket.on("connect_error", (err: Error) => {});
+      }
+    };
+
+    initializeSocket();
+
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("msg-recive", (msg) => {
+        setArrivalMessage({
+          id: `${Date.now()}`,
+          fromSelf: false,
+          message: msg,
+        });
+        return () => {
+          socket.off("msg-recive");
+        };
+      });
+    }
+  }, [socket]);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
       const res = await AsyncStorage.getItem("login");
       const data = JSON.parse(res as string);
 
@@ -45,20 +95,22 @@ export default function Chat() {
           body: JSON.stringify({ from: data._id, to: selectedUser._id }),
         }
       );
-      console.log(messages);
       const result = await response.json();
       setMessages(result);
-    }
+    };
     if (selectedUser) {
-      run();
+      fetchMessages();
     }
   }, []);
 
   useEffect(() => {
-    if (selectedUser) {
-      socket.emit("add-user", selectedUser._id);
+    if (arrivalMessage) {
+      setMessages((prevMessages) => [...prevMessages, arrivalMessage]);
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: true });
+      }
     }
-  }, []);
+  }, [arrivalMessage]); // <-- Include arrivalMessage in dependency array
 
   useEffect(() => {
     if (flatListRef.current) {
@@ -66,62 +118,51 @@ export default function Chat() {
     }
   }, [messages]);
 
-  useEffect(() => {
-    const getCurrentChat = async () => {
-      if (selectedUser) {
-        const login = await AsyncStorage.getItem("login");
-        const currentUser = JSON.parse(login as string)._id;
-      }
-    };
-    getCurrentChat();
-  }, []);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on("msg-recive", (msg) => {
-        setArrivalMessage({
-          fromSelf: false,
-          message: msg,
-          id: selectedUser._id,
-        });
-
-        useEffect(() => {
-          arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
-        }, [arrivalMessage]);
-        return () => {
-          socket.off("msg-recive");
-        };
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    arrivalMessage && setMessages((prev) => [...prev, arrivalMessage]);
-  }, [arrivalMessage]);
-
   const handleBackbtn = () => {
     router.back();
   };
 
-  const handleSendMsg = async (msg: string) => {
+  const handleSendMsg = async () => {
+    if (newMessage.trim() === "") return;
     const res = await AsyncStorage.getItem("login");
     const data = JSON.parse(res as string);
 
-    socket.emit("send-msg", {
-      to: selectedUser._id,
-      from: data._id,
-      msg,
-    });
+    const newMsg = {
+      id: `${Date.now()}`, // Ensure unique IDs for each message
+      fromSelf: true,
+      message: newMessage,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, newMsg]);
+
+    if (socketRef.current)
+      socketRef.current.emit("send-msg", {
+        to: selectedUser._id,
+        from: data._id,
+        msg: newMessage,
+      });
+
     await fetch("https://server-27op.onrender.com/api/messages/addmsg", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: data._id, to: data._id, message: msg }),
+      body: JSON.stringify({
+        from: data._id,
+        to: selectedUser._id,
+        message: newMessage,
+      }),
     });
+
+    setNewMessage("");
+
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
   };
 
   const renderItem = ({ item }: { item: Message }) => (
     <View
       style={[styles.message, item.fromSelf ? styles.sended : styles.received]}
+      key={item.id} // <-- Use unique keys for each message
     >
       <View style={styles.content}>
         <Text style={styles.messageText}>{item.message}</Text>
@@ -151,12 +192,17 @@ export default function Chat() {
           style={styles.chatMessages}
         />
         <View style={styles.chatContainer}>
-          <TextInput style={styles.textinput} />
-          <TouchableOpacity
-            onPress={() => handleSendMsg}
-            style={styles.sendbtn}
-          >
-            <Ionicons name="send" />
+          <View style={styles.inputfield}>
+            <TextInput
+              style={styles.textinput}
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="Type your message..."
+              placeholderTextColor="#d1d1d1"
+            />
+          </View>
+          <TouchableOpacity onPress={handleSendMsg} style={styles.sendbtn}>
+            <Ionicons name="send" color="white" />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -171,18 +217,18 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     backgroundColor: "#333333",
-    flexDirection: "row", // Arrange children in a row
-    alignItems: "center", // Align children vertically centered
+    flexDirection: "row",
+    alignItems: "center",
     padding: 10,
   },
   arrowback: {
-    marginRight: 3, // Add some space between arrow and avatar
+    marginRight: 3,
   },
   avatar: {
     height: 40,
     width: 40,
     borderRadius: 20,
-    marginRight: 10, // Add some space between avatar and text
+    marginRight: 10,
     borderColor: "#FFFFFF",
     borderWidth: 1,
   },
@@ -221,13 +267,16 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     height: "auto",
   },
-  textinput: {
+  inputfield: {
     borderRadius: 23,
     backgroundColor: "#333333",
     alignContent: "center",
     width: 300,
     height: 50,
+    paddingHorizontal: 10,
+    color: "white",
   },
+  textinput: {},
   sendbtn: {
     backgroundColor: "#FF4500",
     width: 50,
@@ -243,5 +292,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 10,
   },
 });
