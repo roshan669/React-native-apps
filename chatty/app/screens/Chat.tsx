@@ -15,6 +15,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import EmojiModal from "@/components/EmojiModal";
 
 interface Message {
   id: string;
@@ -32,6 +33,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [arrivalMessage, setArrivalMessage] = useState<Message | null>(null);
   const [newMessage, setNewMessage] = useState<string>("");
+  const [showModal, setShowModal] = useState<boolean>(false);
   const selectedUser = SelectedUser ? JSON.parse(SelectedUser as string) : null;
   const router = useRouter();
   const socketRef = useRef<Socket | null>(null);
@@ -141,6 +143,7 @@ export default function Chat() {
         from: data._id,
         msg: newMessage,
       });
+    setNewMessage("");
 
     await fetch("https://server-27op.onrender.com/api/messages/addmsg", {
       method: "POST",
@@ -151,8 +154,6 @@ export default function Chat() {
         message: newMessage,
       }),
     });
-
-    setNewMessage("");
 
     if (flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: true });
@@ -170,6 +171,10 @@ export default function Chat() {
     </View>
   );
 
+  const onModalClose = () => {
+    setShowModal(false);
+  };
+
   return (
     <>
       <StatusBar backgroundColor="#333333" />
@@ -184,6 +189,7 @@ export default function Chat() {
           />
           <Text style={styles.titleText}>{selectedUser?.username}</Text>
         </View>
+
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -193,17 +199,33 @@ export default function Chat() {
         />
         <View style={styles.chatContainer}>
           <View style={styles.inputfield}>
+            <TouchableOpacity
+              style={styles.emojibtn}
+              onPress={() => {
+                setShowModal(true);
+              }}
+            >
+              <Ionicons name="happy-outline" size={27} color={"#FF4500"} />
+            </TouchableOpacity>
             <TextInput
               style={styles.textinput}
               value={newMessage}
               onChangeText={setNewMessage}
-              placeholder="Type your message..."
+              placeholder="Message..."
               placeholderTextColor="#d1d1d1"
+              textAlign="left"
             />
           </View>
           <TouchableOpacity onPress={handleSendMsg} style={styles.sendbtn}>
-            <Ionicons name="send" color="white" />
+            <Ionicons name="send" color="white" size={20} />
           </TouchableOpacity>
+          <EmojiModal
+            isVisible={showModal}
+            onClose={() => setShowModal(false)}
+            onEmojiSelect={(emoji) => {
+              setNewMessage(newMessage + emoji);
+            }}
+          />
         </View>
       </SafeAreaView>
     </>
@@ -268,15 +290,22 @@ const styles = StyleSheet.create({
     height: "auto",
   },
   inputfield: {
+    flexDirection: "row",
     borderRadius: 23,
     backgroundColor: "#333333",
     alignContent: "center",
     width: 300,
     height: 50,
-    paddingHorizontal: 10,
     color: "white",
   },
-  textinput: {},
+  textinput: {
+    flex: 1,
+    color: "#FFF",
+  },
+  emojibtn: {
+    alignSelf: "center",
+    marginLeft: 10,
+  },
   sendbtn: {
     backgroundColor: "#FF4500",
     width: 50,
