@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Text } from "react-native";
+import { ActivityIndicator } from "react-native";
 import Login from "./screens/login";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, Stack } from "expo-router";
@@ -11,13 +11,15 @@ export default function Index() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const login = await AsyncStorage.getItem("login");
-      if (login) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
+      try {
+        const login = await AsyncStorage.getItem("login");
+        setIsAuthenticated(!!login);
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+        setIsAuthenticated(false); // Fallback in case of error
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     checkAuth();
@@ -25,14 +27,17 @@ export default function Index() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Use replace to navigate to the Chats screen and replace the current screen
       router.replace("./(tabs)/chats");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated]);
 
   if (isLoading) {
-    return <ActivityIndicator size="large" color="#0000ff" />; // Display a loading screen or spinner if needed
+    return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
-  return isAuthenticated ? null : <Login />;
+  if (isAuthenticated) {
+    return null;
+  }
+
+  return <Login />;
 }

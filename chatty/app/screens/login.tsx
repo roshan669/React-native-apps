@@ -24,6 +24,9 @@ export default function Login() {
   const handleLogin = async (password: string, username: string) => {
     try {
       setLoading(true);
+      if (loading) {
+        return <ActivityIndicator style={styles.loader} size={"large"} />;
+      }
       const response = await fetch(
         "https://server-27op.onrender.com/api/auth/login",
         {
@@ -50,14 +53,15 @@ export default function Login() {
   };
 
   const onLoginPress = () => {
-    if (loading) {
-      return <ActivityIndicator style={styles.loader} size={"large"} />;
-    }
     if (username && password) {
       handleLogin(password, username);
     } else {
       Toast.error("Please enter all fields", "top");
     }
+  };
+
+  const handleRoute = () => {
+    router.replace("./screens/signup");
   };
 
   return (
@@ -92,10 +96,8 @@ export default function Login() {
           <Ionicons name="log-in-outline" size={20} color={"#FFF"} />
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Link href={"./screens/signup"} style={styles.link}>
-            Don't have an account? Signup
-          </Link>
+        <TouchableOpacity onPress={handleRoute}>
+          <Text style={styles.link}>Don't have an account? Signup</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

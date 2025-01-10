@@ -17,14 +17,20 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="screens/setAvatar"
-          options={{ headerShown: false }}
+          options={{ headerShown: false, animation: "fade_from_bottom" }}
         />
         <Stack.Screen
           name="screens/signup"
-          options={{ headerShown: false, animation: "simple_push" }}
+          options={{ headerShown: false, animation: "slide_from_right" }}
         />
-        <Stack.Screen name="screens/login" options={{ headerShown: false }} />
-        <Stack.Screen name="screens/Chat" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="screens/login"
+          options={{ headerShown: false, animation: "slide_from_left" }}
+        />
+        <Stack.Screen
+          name="screens/Chat"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
       </Stack>
       <ToastManager
         showProgressBar={false}

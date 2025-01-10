@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
-import Animated from "react-native-reanimated";
+import { Animated } from "react-native";
 
 const iconNames: { [key: string]: keyof typeof Ionicons.glyphMap } = {
   chatsn: "chatbubble-ellipses-outline",

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
-  ToastAndroid,
 } from "react-native";
 import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -65,6 +64,10 @@ export default function Signup() {
       Toast.error("Please enter all fields", "top");
     }
   };
+
+  const handleRoute = () => {
+    router.replace("./login");
+  };
   return (
     <>
       <StatusBar style="light" />
@@ -95,10 +98,8 @@ export default function Signup() {
           >
             <Text style={styles.buttonText}>Sign Me Up</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Link href={"/"} style={styles.link}>
-              Already Have An account? Login
-            </Link>
+          <TouchableOpacity onPress={handleRoute}>
+            <Text style={styles.link}>Already Have An account? Login</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

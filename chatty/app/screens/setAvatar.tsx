@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
+  Animated,
+  Easing,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Toast } from "toastify-react-native";
+
 const api = `https://robohash.org`;
 
 export default function SetAvatar() {
@@ -20,13 +23,19 @@ export default function SetAvatar() {
   const [selectedAvatar, setSelectedAvatar] = useState<number | undefined>(
     undefined
   );
+  const [refresh, setRefresh] = useState(false); // Initialize to false
   const router = useRouter();
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     async function checkAuth() {
-      const auth = await AsyncStorage.getItem("login");
-      if (!auth) {
-        router.replace("/");
+      try {
+        const auth = await AsyncStorage.getItem("login");
+        if (!auth) {
+          router.replace("/");
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
       }
     }
     checkAuth();
@@ -39,7 +48,7 @@ export default function SetAvatar() {
         const requests = [];
         for (let i = 0; i < 4; i++) {
           const randomId = Math.round(Math.random() * 10000);
-          const url = await `${api}/${randomId}.png`;
+          const url = `${api}/${randomId}.png`;
           requests.push(url);
         }
         setAvatars(requests);
@@ -49,34 +58,47 @@ export default function SetAvatar() {
       }
     }
     fetchAvatars();
-  }, []);
+  }, [refresh]);
+
+  const rotateInterpolate = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   const setProfilePicture = async () => {
     if (selectedAvatar === undefined) {
       Toast.error("Please select an avatar", "top");
     } else {
-      const userString = await AsyncStorage.getItem("login");
-      if (userString) {
-        const user = JSON.parse(userString);
-        const response = await fetch(
-          `https://server-27op.onrender.com/api/auth/setAvatar/${user._id}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: avatars[selectedAvatar] }),
+      try {
+        setIsLoading(true);
+        const userString = await AsyncStorage.getItem("login");
+        if (userString) {
+          const user = JSON.parse(userString);
+          const response = await fetch(
+            `https://server-27op.onrender.com/api/auth/setAvatar/${user._id}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: avatars[selectedAvatar] }),
+            }
+          );
+          const data = await response.json();
+          if (data.isSet) {
+            user.isAvatarImageSet = true;
+            user.avatarImage = data.image;
+            await AsyncStorage.setItem("login", JSON.stringify(user));
+            router.replace("../(tabs)/chats");
+          } else {
+            Toast.error("Error setting avatar", "top");
           }
-        );
-        const data = await response.json();
-        if (data.isSet) {
-          user.isAvatarImageSet = true;
-          user.avatarImage = data.image;
-          await AsyncStorage.setItem("login", JSON.stringify(user));
-          router.replace("../(tabs)/chats"); // Navigate to the Chats screen
+          setIsLoading(!isLoading);
         } else {
-          Toast.error("Error setting avatar", "top");
+          Toast.error("User not found", "top");
         }
-      } else {
-        Toast.error("User not found", "top");
+      } catch (error) {
+        Toast.error("Error setting avatar", "top"); // Handle fetch errors
+        console.error("Error setting avatar:", error);
+        setIsLoading(!isLoading);
       }
     }
   };
@@ -108,12 +130,23 @@ export default function SetAvatar() {
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity
-            onPress={setProfilePicture}
-            style={styles.submitBtn}
-          >
-            <Text style={styles.submitText}>Set as Profile Picture</Text>
-          </TouchableOpacity>
+          <View style={styles.btncontainer}>
+            <TouchableOpacity
+              style={styles.refreshIcon}
+              onPress={() => {
+                setRefresh(!refresh);
+                setSelectedAvatar(undefined);
+              }}
+            >
+              <Text style={styles.refreshtxt}>Refresh</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={setProfilePicture}
+              style={styles.submitBtn}
+            >
+              <Text style={styles.submitText}>Set as Profile picture</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -131,7 +164,9 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   titleContainer: {
-    marginBottom: 20,
+    marginBottom: 50,
+
+    marginTop: 10,
   },
   title: {
     color: "#fff",
@@ -140,34 +175,59 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   avatars: {
-    flexDirection: "column",
-    justifyContent: "space-around",
+    marginTop: 50,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    flexWrap: "wrap",
     alignItems: "center",
-    height: "80%",
+    width: "95%",
   },
   avatar: {
+    width: "40%", // Each avatar takes up 45% of the container width (with some margin for spacing)
+    aspectRatio: 1, // Maintain aspect ratio (important for circles)
     borderWidth: 4,
     borderColor: "#fff",
     padding: 4,
-    borderRadius: 60,
+    borderRadius: 70,
     marginVertical: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   avatarImage: {
-    width: 100,
-    height: 100,
+    width: "100%",
+    height: "100%",
     borderRadius: 60,
   },
   selectedAvatar: {
     borderColor: "#FF4500",
   },
+  btncontainer: {
+    flexDirection: "column",
+    marginTop: 40,
+  },
   submitBtn: {
-    marginTop: 50,
+    marginTop: 40,
     backgroundColor: "#FF4500",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
+  },
+
+  refreshIcon: {
+    marginTop: 20,
+
+    backgroundColor: "#FF4500",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginLeft: 20,
+    marginRight: 20,
+  },
+  refreshtxt: {
+    color: "#fff",
+    fontSize: 16,
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   submitText: {
     color: "#fff",

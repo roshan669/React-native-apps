@@ -23,11 +23,6 @@ interface Message {
   message: string;
 }
 
-interface SocketMessage {
-  fromSelf: boolean;
-  message: string;
-}
-
 export default function Chat() {
   const { SelectedUser } = useGlobalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
