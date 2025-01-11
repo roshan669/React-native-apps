@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +35,11 @@ export default function Chat() {
   const router = useRouter();
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList<Message>>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Track loading state
+  const [lastLoadedMessageId, setLastLoadedMessageId] = useState<string | null>(
+    null
+  ); // Store last loaded message ID
+  const [refreshing, setRefreshing] = useState(false);
 
   if (!socketRef.current) {
     socketRef.current = io("https://server-27op.onrender.com", {
@@ -80,7 +87,7 @@ export default function Chat() {
   }, [socket]);
 
   useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchInitialMessages = async () => {
       const res = await AsyncStorage.getItem("login");
       const data = JSON.parse(res as string);
 
@@ -89,16 +96,54 @@ export default function Chat() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: data._id, to: selectedUser._id }),
+          body: JSON.stringify({
+            from: data._id,
+            to: selectedUser._id,
+            limit: 15,
+          }), // Fetch initial 15 messages
         }
       );
       const result = await response.json();
-      setMessages(result);
+      setMessages(result.reverse()); // Reverse for chronological order
+      setLastLoadedMessageId(result[result.length - 1]?.id); // Set last loaded message ID
+      console.log(lastLoadedMessageId);
     };
     if (selectedUser) {
-      fetchMessages();
+      fetchInitialMessages();
     }
   }, []);
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !lastLoadedMessageId) return; // Prevent redundant requests
+
+    setIsLoadingMore(true);
+
+    const res = await AsyncStorage.getItem("login");
+    const data = JSON.parse(res as string);
+
+    const response = await fetch(
+      "https://server-27op.onrender.com/api/messages/getmsg",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: data._id,
+          to: selectedUser._id,
+          limit: 10,
+          before: lastLoadedMessageId, // Load messages before the last loaded ID
+        }),
+      }
+    );
+    const result = await response.json();
+    console.log(result);
+
+    if (result.length > 0) {
+      setMessages((prevMessages) => [...prevMessages, ...result.reverse()]); // Reverse for chronological order
+      setLastLoadedMessageId(result[result.length - 1]?.id); // Update last loaded message ID
+    }
+
+    setIsLoadingMore(false);
+  };
 
   useEffect(() => {
     if (arrivalMessage) {
@@ -170,6 +215,19 @@ export default function Chat() {
     setShowModal(false);
   };
 
+  const ListFooterComponent = () => {
+    return isLoadingMore ? (
+      <View style={styles.loader}>
+        <ActivityIndicator size="small" color="#FF4500" />
+      </View>
+    ) : null;
+  };
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await handleLoadMore(); // Call your load more function here
+    setRefreshing(false);
+  }, []);
   return (
     <>
       <StatusBar backgroundColor="#333333" />
@@ -191,6 +249,20 @@ export default function Chat() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           style={styles.chatMessages}
+          ListFooterComponent={ListFooterComponent}
+          onContentSizeChange={() => {
+            if (flatListRef.current) {
+              flatListRef.current.scrollToEnd({ animated: false });
+            }
+          }}
+          refreshControl={
+            // Add RefreshControl
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FF4500"
+            />
+          }
         />
         <View style={styles.chatContainer}>
           <View style={styles.inputfield}>

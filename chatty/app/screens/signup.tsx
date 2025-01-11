@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +16,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSignup = async (
@@ -23,6 +25,7 @@ export default function Signup() {
     username: string
   ) => {
     try {
+      setLoading(true);
       const response = await fetch(
         "https://server-27op.onrender.com/api/auth/register",
         {
@@ -34,6 +37,7 @@ export default function Signup() {
       const text = await response.text();
 
       const data = text ? JSON.parse(text) : {};
+      setLoading(false);
       if (data.status == true) {
         Toast.success(data.msg, "top");
         router.replace("/");
@@ -66,7 +70,7 @@ export default function Signup() {
   };
 
   const handleRoute = () => {
-    router.replace("./login");
+    router.replace("/");
   };
   return (
     <>
@@ -96,7 +100,11 @@ export default function Signup() {
             onPress={onSignupPress}
             style={[styles.button, styles.shadow]}
           >
-            <Text style={styles.buttonText}>Sign Me Up</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.buttonText}>Sign Me Up</Text>
+            )}
           </TouchableOpacity>
           <TouchableOpacity onPress={handleRoute}>
             <Text style={styles.link}>Already Have An account? Login</Text>

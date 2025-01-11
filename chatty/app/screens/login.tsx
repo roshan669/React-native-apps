@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StatusBar } from "expo-status-bar";
 import { Link, useRouter } from "expo-router";
 import { Toast } from "toastify-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ActivityIndicator } from "react-native";
 
 export default function Login() {
   const [password, setPassword] = useState("");
@@ -24,9 +24,7 @@ export default function Login() {
   const handleLogin = async (password: string, username: string) => {
     try {
       setLoading(true);
-      if (loading) {
-        return <ActivityIndicator style={styles.loader} size={"large"} />;
-      }
+
       const response = await fetch(
         "https://server-27op.onrender.com/api/auth/login",
         {
@@ -35,10 +33,10 @@ export default function Login() {
           body: JSON.stringify({ password, username }),
         }
       );
-      setLoading(false);
 
       const text = await response.text();
       const data = text ? JSON.parse(text) : {};
+      setLoading(false);
 
       if (data.status == true) {
         Toast.success("You are in 😊!", "top");
@@ -48,6 +46,7 @@ export default function Login() {
         Toast.error("Wrong credentials", "top");
       }
     } catch (error) {
+      setLoading(false); // Set loading to false on error
       Toast.error("Something went wrong", "top");
     }
   };
@@ -93,8 +92,14 @@ export default function Login() {
           onPress={onLoginPress}
           style={[styles.button, styles.shadow]}
         >
-          <Ionicons name="log-in-outline" size={20} color={"#FFF"} />
-          <Text style={styles.buttonText}>Login</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <>
+              <Ionicons name="log-in-outline" size={20} color={"#FFF"} />
+              <Text style={styles.buttonText}>Login</Text>
+            </>
+          )}
         </TouchableOpacity>
         <TouchableOpacity onPress={handleRoute}>
           <Text style={styles.link}>Don't have an account? Signup</Text>
@@ -110,6 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#25292e",
   },
   container: {
+    backgroundColor: "#25292e",
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
