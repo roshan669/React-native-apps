@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     alignContent: "center",
     alignSelf: "center",
     elevation: 10,
-    shadowOpacity: 1,
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 1)",
     borderColor: "#FFF",
     flexDirection: "row",
   },

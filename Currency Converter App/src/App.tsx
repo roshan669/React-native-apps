@@ -135,13 +135,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#95a5a6',
     elevation: 4,
-    shadowOffset: {
-      width: 3,
-      height: 3,
-    },
-    shadowColor: '#333',
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)'
   },
   selected: {
     backgroundColor: '#ff5200',

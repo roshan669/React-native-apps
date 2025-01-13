@@ -23,7 +23,16 @@ export default function EmojiModal({
             <MaterialIcons name="close" color="#fff" size={22} />
           </Pressable>
         </View>
-
+        <Text
+          style={{
+            textAlign: "center",
+            marginTop: 55,
+            fontWeight: "bold",
+            color: "#FFF",
+          }}
+        >
+          WILL BE ADDED LATER VERSIONS
+        </Text>
         {children}
       </View>
     </Modal>

@@ -18,31 +18,30 @@ import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import EmojiModal from "@/components/EmojiModal";
-import { Toast } from "toastify-react-native";
 
 interface Message {
   id: string;
   fromSelf: boolean;
   message: string;
-  timestamp: string;
 }
 
 export default function Chat() {
   const { SelectedUser } = useGlobalSearchParams();
-  const [lastLoadedMessageId, setLastLoadedMessageId] = useState<string | null>(
-    "Empty"
-  );
   const [messages, setMessages] = useState<Message[]>([]);
   const [arrivalMessage, setArrivalMessage] = useState<Message | null>(null);
   const [newMessage, setNewMessage] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
-  const selectedUser = SelectedUser ? JSON.parse(SelectedUser as string) : null;
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Track loading state
+  const [lastLoadedMessage, setLastLoadedMessage] = useState<string | null>(
+    null
+  );
+  // Store last loaded message ID
+  const [refreshing, setRefreshing] = useState(false);
+
+  const flatListRef = useRef<FlatList<Message>>(null);
   const router = useRouter();
   const socketRef = useRef<Socket | null>(null);
-  const flatListRef = useRef<FlatList<Message>>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Track loading state
-
-  const [refreshing, setRefreshing] = useState(false);
+  const selectedUser = SelectedUser ? JSON.parse(SelectedUser as string) : null;
 
   if (!socketRef.current) {
     socketRef.current = io("https://server-27op.onrender.com", {
@@ -81,7 +80,6 @@ export default function Chat() {
           id: `${Date.now()}`,
           fromSelf: false,
           message: msg,
-          timestamp: `${Date.now()}`,
         });
         return () => {
           socket.off("msg-recive");
@@ -92,124 +90,114 @@ export default function Chat() {
 
   useEffect(() => {
     const fetchInitialMessages = async () => {
-      // Explicit return type
-      try {
-        const res = await AsyncStorage.getItem("login");
-        if (!res) {
-          console.error("No login data found");
-          return []; // Important: Return an empty array in case of error
-        }
+      const res = await AsyncStorage.getItem("login");
+      const data = JSON.parse(res as string);
 
-        const response = await AsyncStorage.getItem(selectedUser?._id);
-        if (!response) {
-          Toast.info("No Message");
-          return []; // Important: Return an empty array in case of error
+      const response = await fetch(
+        "https://server-27op.onrender.com/api/messages/getmsg",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: data._id,
+            to: selectedUser._id,
+            limit: 15,
+          }), // Fetch initial 15 messages
         }
-
-        const result = JSON.parse(response);
-        console.log(response);
-        setMessages(result);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-        return []; // Important: Return an empty array on error
-      }
+      );
+      const result = await response.json();
+      setMessages(result.reverse()); // Reverse for chronological order
+      setLastLoadedMessage(result[0]?.timestamp); // Set last loaded message ID
     };
-    fetchInitialMessages();
+    if (selectedUser) {
+      fetchInitialMessages();
+    }
   }, []);
 
-  useEffect(() => {
-    const res = async () => {
-      if (arrivalMessage) {
-        setMessages((prevMessages) => [...prevMessages, arrivalMessage]);
-        const stringmsg = JSON.stringify(messages);
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !lastLoadedMessage) return; // Prevent redundant requests
 
-        await AsyncStorage.setItem(selectedUser?._id, stringmsg);
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: false });
-        }
+    setIsLoadingMore(true);
+
+    const res = await AsyncStorage.getItem("login");
+    const data = JSON.parse(res as string);
+
+    const response = await fetch(
+      "https://server-27op.onrender.com/api/messages/getmsg",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: data._id,
+          to: selectedUser._id,
+          limit: 15,
+          before: lastLoadedMessage, // Load messages before the last loaded ID
+        }),
       }
-    };
-    res();
-  }, [arrivalMessage]); // <-- Include arrivalMessage in dependency array
+    );
+    const result = await response.json();
+
+    if (result.length > 0) {
+      setMessages((prevMessages) => [...result.reverse(), ...prevMessages]); // Reverse for chronological order
+      setLastLoadedMessage(result[0]?.timestamp); // Update last loaded message ID
+    }
+
+    setIsLoadingMore(false);
+  };
+
+  useEffect(() => {
+    if (arrivalMessage) {
+      setMessages((prevMessages) => [...prevMessages, arrivalMessage]);
+      if (flatListRef.current) {
+        flatListRef.current.scrollToEnd({ animated: false });
+      }
+    }
+  }, [arrivalMessage]);
 
   const handleBackbtn = () => {
     router.back();
   };
 
   const handleSendMsg = async () => {
-    // Check if new message is empty
     if (newMessage.trim() === "") return;
+    const res = await AsyncStorage.getItem("login");
+    const data = JSON.parse(res as string);
 
-    // Get login data
-    try {
-      const loginDataString = await AsyncStorage.getItem("login");
-      if (!loginDataString) {
-        console.error("Login data not found in AsyncStorage");
-        return;
-      }
-      const loginData = JSON.parse(loginDataString);
-      console.log(loginData);
+    const newMsg = {
+      id: `${Date.now()}`, // Ensure unique IDs for each message
+      fromSelf: true,
+      message: newMessage,
+    };
 
-      // Create new message object
-      const newMsg = {
-        id: `${Date.now()}`, // Unique ID
-        fromSelf: true,
+    setMessages((prevMessages) => [...prevMessages, newMsg]);
+
+    if (socketRef.current)
+      socketRef.current.emit("send-msg", {
+        to: selectedUser._id,
+        from: data._id,
+        msg: newMessage,
+      });
+    setNewMessage("");
+
+    await fetch("https://server-27op.onrender.com/api/messages/addmsg", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: data._id,
+        to: selectedUser._id,
         message: newMessage,
-        timestamp: `${Date.now()}`,
-      };
+      }),
+    });
 
-      // Update local messages state
-      setMessages((prevMessages) => [...prevMessages, newMsg]);
-
-      // Send message via socket (if available)
-      if (socketRef.current) {
-        socketRef.current.emit("send-msg", {
-          to: selectedUser._id,
-          from: loginData._id,
-          msg: newMessage,
-        });
-      }
-
-      // Clear new message input
-      setNewMessage("");
-
-      // Store message for selected user (optional)
-      if (selectedUser) {
-        // Retrieve existing messages for the selected user
-        let existingMessagesString = await AsyncStorage.getItem(
-          selectedUser._id
-        );
-        let existingMessages: Message[] = [];
-
-        if (existingMessagesString) {
-          try {
-            existingMessages = JSON.parse(existingMessagesString);
-          } catch (error) {
-            console.error("Error parsing existing messages:", error);
-          }
-        }
-
-        // Update and store messages
-        const updatedMessages = [...existingMessages, newMsg];
-        const updatedMessagesString = JSON.stringify(updatedMessages);
-        await AsyncStorage.setItem(selectedUser._id, updatedMessagesString);
-      } else {
-        Toast.warn("User not found");
-      }
-
-      // Scroll to end of message list (if available)
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }
-    } catch (error) {
-      console.error("Error handling message:", error);
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
     }
   };
 
   const renderItem = ({ item }: { item: Message }) => (
     <View
       style={[styles.message, item.fromSelf ? styles.sended : styles.received]}
-      key={item.id} // <-- Use unique keys for each message
+      key={item.id}
     >
       <View style={styles.content}>
         <Text style={styles.messageText}>{item.message}</Text>
@@ -218,9 +206,16 @@ export default function Chat() {
   );
 
   const ListHeaderComponent = () => {
-    return isLoadingMore ? <View style={styles.loader}>This is it</View> : null;
+    return isLoadingMore ? (
+      <View>
+        <ActivityIndicator size="small" color="#FF4500" />
+      </View>
+    ) : null;
   };
 
+  const onRefresh = async () => {
+    await handleLoadMore(); // Call your load more function here
+  };
   return (
     <>
       <StatusBar backgroundColor="#333333" />
@@ -235,20 +230,24 @@ export default function Chat() {
           />
           <Text style={styles.titleText}>{selectedUser?.username}</Text>
         </View>
-        {messages.length > 0 ? (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            style={styles.chatMessages}
-            ListHeaderComponent={ListHeaderComponent}
-          />
-        ) : (
-          <View style={styles.nomsg}>
-            <Text style={styles.nomsgtxt}>No MSG</Text>
-          </View>
-        )}
+
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          style={styles.chatMessages}
+          ListHeaderComponent={ListHeaderComponent}
+          refreshControl={
+            // Add RefreshControl
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FF4500"
+              progressBackgroundColor="#FF4500"
+            />
+          }
+        />
         <View style={styles.chatContainer}>
           <View style={styles.inputfield}>
             <TouchableOpacity
@@ -285,14 +284,6 @@ export default function Chat() {
 }
 
 const styles = StyleSheet.create({
-  nomsg: {
-    flex: 1,
-    flexDirection: "column",
-  },
-  nomsgtxt: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
   container: {
     flex: 1,
     backgroundColor: "#25292e",
