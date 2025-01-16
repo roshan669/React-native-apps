@@ -57,20 +57,10 @@ export default function Chat() {
       if (currentUserString) {
         const currentUser = JSON.parse(currentUserString);
         socket.emit("add-user", currentUser._id);
-
-        socket.on("disconnect", () => {});
-
-        socket.on("connect_error", (err: Error) => {});
       }
     };
 
     initializeSocket();
-
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("connect_error");
-    };
   }, []);
 
   useEffect(() => {
@@ -149,7 +139,7 @@ export default function Chat() {
     if (arrivalMessage) {
       setMessages((prevMessages) => [...prevMessages, arrivalMessage]);
       if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: false });
+        flatListRef.current.scrollToEnd({ animated: true });
       }
     }
   }, [arrivalMessage]);
@@ -190,7 +180,7 @@ export default function Chat() {
     });
 
     if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
+      flatListRef.current.scrollToEnd({ animated: false });
     }
   };
 
@@ -231,52 +221,52 @@ export default function Chat() {
           <Text style={styles.titleText}>{selectedUser?.username}</Text>
         </View>
 
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          style={styles.chatMessages}
-          ListHeaderComponent={ListHeaderComponent}
-          refreshControl={
-            // Add RefreshControl
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#FF4500"
-              progressBackgroundColor="#FF4500"
-            />
-          }
-        />
-        <View style={styles.chatContainer}>
-          <View style={styles.inputfield}>
-            <TouchableOpacity
-              style={styles.emojibtn}
-              onPress={() => {
-                setShowModal(true);
-              }}
-            >
-              <Ionicons name="happy-outline" size={27} color={"#FF4500"} />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.textinput}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="Message..."
-              placeholderTextColor="#d1d1d1"
-              textAlign="left"
-            />
-          </View>
-          <TouchableOpacity onPress={handleSendMsg} style={styles.sendbtn}>
-            <Ionicons name="send" color="white" size={20} />
-          </TouchableOpacity>
-          <EmojiModal
-            isVisible={showModal}
-            onClose={() => setShowModal(false)}
-            onEmojiSelect={(emoji) => {
-              setNewMessage(newMessage + emoji);
+        <View style={styles.contentContainer}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            style={styles.chatMessages}
+            ListHeaderComponent={ListHeaderComponent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#FF4500"
+                progressBackgroundColor="#FF4500"
+              />
+            }
+            onLayout={() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
             }}
           />
+          <View style={styles.chatContainer}>
+            <View style={styles.inputfield}>
+              <TouchableOpacity
+                style={styles.emojibtn}
+                onPress={() => setShowModal(true)}
+              >
+                <Ionicons name="happy-outline" size={27} color={"#FF4500"} />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.textinput}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                placeholder="Message..."
+                placeholderTextColor="#d1d1d1"
+                textAlign="left"
+              />
+            </View>
+            <TouchableOpacity onPress={handleSendMsg} style={styles.sendbtn}>
+              <Ionicons name="send" color="white" size={20} />
+            </TouchableOpacity>
+            <EmojiModal
+              isVisible={showModal}
+              onClose={() => setShowModal(false)}
+              onEmojiSelect={(emoji) => setNewMessage(newMessage + emoji)}
+            />
+          </View>
         </View>
       </SafeAreaView>
     </>
@@ -296,6 +286,11 @@ const styles = StyleSheet.create({
   },
   arrowback: {
     marginRight: 3,
+  },
+  contentContainer: {
+    flex: 1, // Takes up all available space below the title
+    flexDirection: "column",
+    justifyContent: "space-between", // Distributes space between FlatList and chatContainer
   },
   avatar: {
     height: 40,
@@ -373,5 +368,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
+    borderColor: "#FFF",
   },
 });

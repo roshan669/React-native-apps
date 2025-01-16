@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Text,
   View,
@@ -7,11 +7,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  AppState,
+  AppStateStatus,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { io, Socket } from "socket.io-client";
 
 interface User {
   _id: string;
@@ -31,7 +35,30 @@ export default function Chats() {
   const [currentSelected, setCurrentSelected] = useState<number | undefined>(
     undefined
   );
+  const [currentAppState, setCurrentAppState] =
+    useState<AppStateStatus>("unknown");
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const socketRef = useRef<Socket | null>(null);
+  if (!socketRef.current) {
+    socketRef.current = io("https://server-27op.onrender.com", {
+      transports: ["websocket"],
+    });
+  }
+
+  const socket = socketRef.current;
+
+  useEffect(() => {
+    const initializeSocket = async () => {
+      const currentUserString = await AsyncStorage.getItem("login");
+      if (currentUserString) {
+        const currentUser = JSON.parse(currentUserString);
+        socket.emit("add-user", currentUser._id);
+      }
+    };
+
+    initializeSocket();
+  }, []);
 
   useEffect(() => {
     async function checkAuth() {
@@ -52,7 +79,7 @@ export default function Chats() {
         if (currentUser.isAvatarImageSet) {
           setLoading(true);
           const response = await fetch(
-            `https://server-27op.onrender.com/api/auth/allusers/${currentUser._id}`,
+            `https://server-27op.onrender.com/api/auth/getonlineusers/${currentUser._id}`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json" },
@@ -82,6 +109,40 @@ export default function Chats() {
     run();
   }, []);
 
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (
+      currentAppState.match(/inactive|background/) &&
+      nextAppState === "active"
+    ) {
+      console.log("App has come to the foreground");
+      // Handle app coming to foreground (if needed)
+    }
+
+    if (
+      currentAppState === "active" &&
+      nextAppState.match(/inactive|background/)
+    ) {
+      console.log("App is going to background");
+      // Emit 'user-backgrounded' event to the server
+      socket.emit("disconnect");
+    }
+
+    setCurrentAppState(nextAppState);
+  };
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    // Cleanup function
+    return () => {
+      subscription.remove();
+      socket.disconnect();
+    };
+  }, []);
+
   const changeCurrentChat = (key: Contact) => {
     router.push({
       pathname: "../screens/Chat",
@@ -97,19 +158,49 @@ export default function Chats() {
     );
   }
 
+  const onRefresh = async () => {
+    if (currentUser) {
+      setRefreshing(true);
+      // setLoading(true);
+      const response = await fetch(
+        `https://server-27op.onrender.com/api/auth/getonlineusers/${currentUser._id}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      const data = await response.json();
+      // setLoading(false);
+      setContacts(data);
+    }
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.brand}>
         <Ionicons
-          style={styles.logo}
           size={33}
           name="chatbubble-ellipses-outline"
           color={"#FF4500"}
         />
         <Text style={styles.brandText}>Chatter</Text>
+        <Text style={styles.headertxt}>
+          ONLINE USERS <View style={styles.onlineindicator}></View>
+        </Text>
       </View>
 
-      <ScrollView style={styles.contacts}>
+      <ScrollView
+        style={styles.contacts}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FF4500"
+            progressBackgroundColor="#FF4500"
+          />
+        }
+      >
         {contacts.map((contact, index) => (
           <TouchableOpacity
             key={contact._id}
@@ -142,6 +233,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
   },
+  headertxt: {
+    marginLeft: 50,
+    alignContent: "flex-end",
+    color: "#FFF",
+    marginTop: 6,
+    backgroundColor: "#FF4500",
+    height: 20,
+    textAlign: "center",
+    width: 120,
+    borderRadius: 10,
+    fontWeight: "bold",
+  },
+  onlineindicator: {
+    alignContent: "flex-start",
+    backgroundColor: "#00ff4d",
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+  },
   brand: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -149,7 +259,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginLeft: 10,
   },
-  logo: {},
   brandText: {
     color: "white",
     textTransform: "uppercase",
@@ -170,6 +279,7 @@ const styles = StyleSheet.create({
     padding: 10,
     flexDirection: "row",
     alignItems: "center",
+    borderColor: "#FFF",
   },
   selected: {
     backgroundColor: "#ff4500",
