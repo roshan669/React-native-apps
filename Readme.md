@@ -1,1 +1,1 @@
-These are all the apps developed using react-native cli 
+These are all the apps developed using react-native cli and expo
