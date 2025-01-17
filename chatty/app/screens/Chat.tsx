@@ -35,7 +35,7 @@ export default function Chat() {
   const [lastLoadedMessage, setLastLoadedMessage] = useState<string | null>(
     null
   );
-  // Store last loaded message ID
+
   const [refreshing, setRefreshing] = useState(false);
 
   const flatListRef = useRef<FlatList<Message>>(null);
@@ -138,9 +138,7 @@ export default function Chat() {
   useEffect(() => {
     if (arrivalMessage) {
       setMessages((prevMessages) => [...prevMessages, arrivalMessage]);
-      if (flatListRef.current) {
-        flatListRef.current.scrollToEnd({ animated: true });
-      }
+      setArrivalMessage(null);
     }
   }, [arrivalMessage]);
 
@@ -238,9 +236,16 @@ export default function Chat() {
               />
             }
             onLayout={() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
+              flatListRef.current?.scrollToEnd({ animated: true });
             }}
           />
+          {arrivalMessage ? (
+            <View>
+              <TouchableOpacity>
+                <Text>new msg</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <View style={styles.chatContainer}>
             <View style={styles.inputfield}>
               <TouchableOpacity
