@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Download CHATTY</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        background-color: #25292e;
+        color: white;
+        display: flex; /* Enable flexbox on the body */
+        justify-content: center; /* Center horizontally */
+        align-items: center; /* Center vertically */
+        min-height: 100vh; /* Ensure body covers full viewport height */
+        margin: 0; /* Remove default body margins */
+      }
+      .container {
+        text-align: center; /* Center text within the container */
+      }
+      .download {
+        background-color: #ff4500;
+        color: black;
+        padding: 15px 20px;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 10px;
+        width: 100px;
+      }
+      .download:hover {
+        background-color: #3e8e41;
+      }
+      ion-icon {
+        font-size: 100px;
+      }
+      .githublogo {
+        font-size: 35px;
+      }
+      .credit {
+        margin-top: 20%;
+      }
+      .creditlink {
+        color: #ffffff;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container" class="container">
+      <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+      <h1>Download CHATTY</h1>
+      <p>Click the button below to download the CHATTY app.</p>
+      <a
+        class="download"
+        href="https://github.com/roshan669/React-native-apps/raw/refs/heads/master/chatty/chatty.apk"
+        download="CHATTY.apk"
+      >
+        <ion-icon size="small" name="download-outline"></ion-icon>
+      </a>
+
+      <br />
+
+      <div class="credit">
+        <a class="creditlink" href="https://github.com/roshan669">
+          <ion-icon class="githublogo" name="logo-github" />
+        </a>
+      </div>
+
+      <script
+        type="module"
+        src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"
+      ></script>
+      <script
+        nomodule
+        src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"
+      ></script>
+    </div>
+  </body>
+</html>
